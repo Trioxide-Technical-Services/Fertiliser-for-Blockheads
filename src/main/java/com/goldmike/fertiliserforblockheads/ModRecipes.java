@@ -43,16 +43,8 @@ final class farmland extends CustomRecipe
         {
             ItemStack s = inv.getItem(i);
             if (s.isEmpty()) continue;
-            if (!foundDirt && s.is(Items.DIRT))
-            {
-                foundDirt = true;
-                continue;
-            }
-            if (!foundHoe && s.is(ItemTags.HOES))
-            {
-                foundHoe = true;
-                continue;
-            }
+            if (!foundDirt && s.is(Items.DIRT))  { foundDirt = true; continue; }
+            if (!foundHoe && s.is(ItemTags.HOES)) { foundHoe = true; continue; }
             // Any extra junk in the grid invalidates the recipe.
             return false;
         }
