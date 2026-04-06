@@ -48,18 +48,19 @@ repositories
 dependencies
 {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+    compileOnly fg.deobf("curse.maven:emi-580555:6420945")
     compileOnly fg.deobf("net.darkhax.botanypots:BotanyPots-Forge-1.20.1:13.0.41")
     compileOnly fg.deobf("net.darkhax.bookshelf:Bookshelf-Forge-1.20.1:20.2.13")
     implementation fg.deobf("curse.maven:balm-531761:7087245")
     implementation fg.deobf("curse.maven:farming-for-blockheads-261924:7048376")
+    runtimeOnly fg.deobf("curse.maven:architectury-api-419699:5137938")
     runtimeOnly fg.deobf("curse.maven:bookshelf-228525:5423987")
     runtimeOnly fg.deobf("curse.maven:botany-pots-353928:6348581")
     runtimeOnly fg.deobf("curse.maven:emi-580555:6420945")
-    runtimeOnly fg.deobf("curse.maven:tmrv-1194921:7259315")
-    runtimeOnly fg.deobf("curse.maven:lmft-656346:4892299")
-    runtimeOnly fg.deobf("curse.maven:architectury-api-419699:5137938")
-    runtimeOnly fg.deobf("curse.maven:rhino-416294:6186971")
     runtimeOnly fg.deobf("curse.maven:kubejs-238086:5853326")
+    runtimeOnly fg.deobf("curse.maven:lmft-656346:4892299")
+    runtimeOnly fg.deobf("curse.maven:rhino-416294:6186971")
+    runtimeOnly fg.deobf("curse.maven:tmrv-1194921:7259315")
 }
 tasks.named('processResources', ProcessResources).configure
 {

@@ -15,6 +15,9 @@ import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import javax.annotation.ParametersAreNonnullByDefault;
+
+import static com.mojang.text2speech.Narrator.LOGGER;
+
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public final class ModRecipes
@@ -31,8 +34,12 @@ public final class ModRecipes
 @MethodsReturnNonnullByDefault
 final class farmland extends CustomRecipe
 {
-    public farmland(ResourceLocation id, CraftingBookCategory category) {
-        super(id, category);
+    public farmland(ResourceLocation id, CraftingBookCategory category) { super(id, category); }
+    @Override
+    public ItemStack assemble(CraftingContainer inv, RegistryAccess regs) { return new ItemStack(Items.FARMLAND); }
+    @Override
+    public boolean canCraftInDimensions(int w, int h) {
+        return w * h >= 2;
     }
     @Override
     public boolean matches(CraftingContainer inv, Level level)
@@ -49,10 +56,6 @@ final class farmland extends CustomRecipe
             return false;
         }
         return foundDirt && foundHoe;
-    }
-    @Override
-    public ItemStack assemble(CraftingContainer inv, RegistryAccess regs) {
-        return new ItemStack(Blocks.FARMLAND);
     }
     @Override
     public NonNullList<Ingredient> getIngredients()
@@ -78,7 +81,9 @@ final class farmland extends CustomRecipe
             {
                 ItemStack copy = s.copy();
                 // Damage by 1. If it breaks, it vanishes like any other tool.
-                boolean broke = copy.hurt(1, RandomSource.create(), null);
+                // Just damage the item manually without going through hurt()
+                copy.setDamageValue(copy.getDamageValue() + 1);
+                boolean broke = copy.getDamageValue() >= copy.getMaxDamage();
                 remaining.set(i, broke ? ItemStack.EMPTY : copy);
             }
             else if (s.hasCraftingRemainingItem()) { remaining.set(i, s.getCraftingRemainingItem().copy()); }
@@ -86,16 +91,10 @@ final class farmland extends CustomRecipe
         return remaining;
     }
     @Override
-    public boolean canCraftInDimensions(int w, int h) {
-        return w * h >= 2;
-    }
-    @Override
-    public RecipeSerializer<?> getSerializer() {
-        return ModRecipes.FARMLAND.get();
-    }
+    public RecipeSerializer<?> getSerializer() { return ModRecipes.FARMLAND.get(); }
     @Override
     public boolean isSpecial() {
         // Show in recipe book / JEI.
-        return false;
+        return true;
     }
 }
