@@ -14,7 +14,8 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.registries.ForgeRegistries;
 @Mod.EventBusSubscriber(modid = FertiliserForBlockheads.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
-public final class FertiliserRightClickHandler {
+public final class FertiliserRightClickHandler
+{
     private static final int RICH = 1;    // green
     private static final int HEALTHY = 2; // red
     private static final int STABLE = 4;  // yellow
@@ -30,7 +31,8 @@ public final class FertiliserRightClickHandler {
     private static final ResourceLocation OUR_RICH_HEALTHY = rl(FertiliserForBlockheads.MODID, "fertilized_farmland_rich_healthy");
     private static final ResourceLocation OUR_RICH_HEALTHY_STABLE = rl(FertiliserForBlockheads.MODID, "fertilized_farmland_rich_healthy_stable");
     @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
-    public static void onRightClickBlock(PlayerInteractEvent.RightClickBlock e) {
+    public static void onRightClickBlock(PlayerInteractEvent.RightClickBlock e)
+    {
         Level level = e.getLevel();
         if (level.isClientSide()) return;
         // avoid double-firing weirdness
@@ -46,15 +48,16 @@ public final class FertiliserRightClickHandler {
         // If you clicked a crop (or anything) on top of farmland, operate on the farmland below.
         BlockPos pos = e.getPos();
         BlockState state = level.getBlockState(pos);
-        if (!(state.getBlock() instanceof FarmBlock)) {
+        if (!(state.getBlock() instanceof FarmBlock))
+        {
             BlockPos below = pos.below();
             BlockState belowState = level.getBlockState(below);
-            if (belowState.getBlock() instanceof FarmBlock) {
+            if (belowState.getBlock() instanceof FarmBlock)
+            {
                 pos = below;
                 state = belowState;
-            } else {
-                return;
             }
+            else { return; }
         }
         ResourceLocation blockId = ForgeRegistries.BLOCKS.getKey(state.getBlock());
         if (blockId == null) return;
@@ -67,19 +70,16 @@ public final class FertiliserRightClickHandler {
         var targetBlock = ForgeRegistries.BLOCKS.getValue(targetId);
         if (targetBlock == null) return;
         BlockState newState = targetBlock.defaultBlockState();
-        if (state.hasProperty(FarmBlock.MOISTURE) && newState.hasProperty(FarmBlock.MOISTURE)) {
-            newState = newState.setValue(FarmBlock.MOISTURE, state.getValue(FarmBlock.MOISTURE));
-        }
+        if (state.hasProperty(FarmBlock.MOISTURE) && newState.hasProperty(FarmBlock.MOISTURE)) { newState = newState.setValue(FarmBlock.MOISTURE, state.getValue(FarmBlock.MOISTURE)); }
         level.setBlock(pos, newState, 3);
-        if (!e.getEntity().getAbilities().instabuild) {
-            held.shrink(1);
-        }
+        if (!e.getEntity().getAbilities().instabuild) { held.shrink(1); }
         e.setUseBlock(Event.Result.DENY);
         e.setUseItem(Event.Result.DENY);
         e.setCanceled(true);
         e.setCancellationResult(InteractionResult.SUCCESS);
     }
-    private static int flagsFromBlock(ResourceLocation id) {
+    private static int flagsFromBlock(ResourceLocation id)
+    {
         if (id.equals(VANILLA_FARMLAND)) return 0;
         if (id.equals(FFB_RICH)) return RICH;
         if (id.equals(FFB_HEALTHY)) return HEALTHY;
@@ -91,7 +91,8 @@ public final class FertiliserRightClickHandler {
         return -1;
     }
     private static ResourceLocation blockFromFlags(int flags) {
-        return switch (flags) {
+        return switch (flags)
+        {
             case 0 -> VANILLA_FARMLAND;
             case RICH -> FFB_RICH;
             case HEALTHY -> FFB_HEALTHY;
@@ -103,7 +104,8 @@ public final class FertiliserRightClickHandler {
             default -> null;
         };
     }
-    private static ResourceLocation rl(String namespace, String path) {
+    private static ResourceLocation rl(String namespace, String path)
+    {
         ResourceLocation id = ResourceLocation.tryBuild(namespace, path);
         if (id == null) throw new IllegalArgumentException("Invalid ResourceLocation: " + namespace + ":" + path);
         return id;

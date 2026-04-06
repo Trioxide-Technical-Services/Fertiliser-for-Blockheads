@@ -20,7 +20,8 @@ import net.minecraftforge.registries.RegistryObject;
 import javax.annotation.ParametersAreNonnullByDefault;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public final class ModRecipes {
+public final class ModRecipes
+{
     public static final DeferredRegister<RecipeSerializer<?>> SERIALIZERS = DeferredRegister.create(ForgeRegistries.RECIPE_SERIALIZERS, FertiliserForBlockheads.MODID);
     public static final RegistryObject<RecipeSerializer<?>> FARMLAND = SERIALIZERS.register("farmland", () -> new SimpleCraftingRecipeSerializer<>(farmland::new));
     private ModRecipes() {}
@@ -31,22 +32,27 @@ public final class ModRecipes {
  */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-final class farmland extends CustomRecipe {
+final class farmland extends CustomRecipe
+{
     public farmland(ResourceLocation id, CraftingBookCategory category) {
         super(id, category);
     }
     @Override
-    public boolean matches(CraftingContainer inv, Level level) {
+    public boolean matches(CraftingContainer inv, Level level)
+    {
         boolean foundDirt = false;
         boolean foundHoe = false;
-        for (int i = 0; i < inv.getContainerSize(); i++) {
+        for (int i = 0; i < inv.getContainerSize(); i++)
+        {
             ItemStack s = inv.getItem(i);
             if (s.isEmpty()) continue;
-            if (!foundDirt && s.is(Items.DIRT)) {
+            if (!foundDirt && s.is(Items.DIRT))
+            {
                 foundDirt = true;
                 continue;
             }
-            if (!foundHoe && s.is(ItemTags.HOES)) {
+            if (!foundHoe && s.is(ItemTags.HOES))
+            {
                 foundHoe = true;
                 continue;
             }
@@ -64,19 +70,21 @@ final class farmland extends CustomRecipe {
         return new ItemStack(Blocks.FARMLAND);
     }
     @Override
-    public NonNullList<ItemStack> getRemainingItems(CraftingContainer inv) {
+    public NonNullList<ItemStack> getRemainingItems(CraftingContainer inv)
+    {
         NonNullList<ItemStack> remaining = NonNullList.withSize(inv.getContainerSize(), ItemStack.EMPTY);
-        for (int i = 0; i < inv.getContainerSize(); i++) {
+        for (int i = 0; i < inv.getContainerSize(); i++)
+        {
             ItemStack s = inv.getItem(i);
             if (s.isEmpty()) continue;
-            if (s.is(ItemTags.HOES)) {
+            if (s.is(ItemTags.HOES))
+            {
                 ItemStack copy = s.copy();
                 // Damage by 1. If it breaks, it vanishes like any other tool.
                 boolean broke = copy.hurt(1, RandomSource.create(), null);
                 remaining.set(i, broke ? ItemStack.EMPTY : copy);
-            } else if (s.hasCraftingRemainingItem()) {
-                remaining.set(i, s.getCraftingRemainingItem().copy());
             }
+            else if (s.hasCraftingRemainingItem()) { remaining.set(i, s.getCraftingRemainingItem().copy()); }
         }
         return remaining;
     }
