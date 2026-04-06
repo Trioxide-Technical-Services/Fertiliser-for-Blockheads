@@ -4,7 +4,6 @@ import net.minecraft.core.RegistryAccess;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.ItemTags;
-import net.minecraft.util.RandomSource;
 import net.minecraft.world.inventory.CraftingContainer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -15,9 +14,6 @@ import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import javax.annotation.ParametersAreNonnullByDefault;
-
-import static com.mojang.text2speech.Narrator.LOGGER;
-
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public final class ModRecipes
