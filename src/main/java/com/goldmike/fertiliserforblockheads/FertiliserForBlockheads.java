@@ -13,6 +13,7 @@ import net.minecraft.tags.BlockTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockGetter;
@@ -50,7 +51,8 @@ import java.util.List;
 @Mod(FertiliserForBlockheads.MODID)
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public class FertiliserForBlockheads {
+public class FertiliserForBlockheads
+{
     public static final String MODID = "fertiliserforblockheads";
     public static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, MODID);
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
@@ -63,7 +65,8 @@ public class FertiliserForBlockheads {
     public static final RegistryObject<Item> FERTILIZED_FARMLAND_RICH_HEALTHY_STABLE_ITEM = ITEMS.register("fertilized_farmland_rich_healthy_stable", () -> new BlockItem(FERTILIZED_FARMLAND_RICH_HEALTHY_STABLE.get(), new Item.Properties()));
     @SuppressWarnings("unused")
     private static final RegistryObject<Codec<? extends IGlobalLootModifier>> RICH_BONUS = LOOT_MODIFIERS.register("rich_bonus", () -> RichBonusLootModifier.CODEC);
-    public FertiliserForBlockheads(FMLJavaModLoadingContext ctx) {
+    public FertiliserForBlockheads(FMLJavaModLoadingContext ctx)
+    {
         IEventBus modBus = ctx.getModEventBus();
         BLOCKS.register(modBus);
         ITEMS.register(modBus);
@@ -72,35 +75,34 @@ public class FertiliserForBlockheads {
         modBus.addListener(FertiliserForBlockheads::addToCreativeTabs);
         FarmingForBlockheadsConfigBridge.load();
     }
-    private static int rollExtraCount(RandomSource rand, double chance) {
+    private static int rollExtraCount(RandomSource rand, double chance)
+    {
         if (chance <= 0) return 0;
         int guaranteed = (int) Math.floor(chance);
         double remainder = chance - guaranteed;
         return guaranteed + (rand.nextDouble() < remainder ? 1 : 0);
     }
-    static final class ComboFarmlandBlock extends FertilizedFarmlandBlock {
+    static final class ComboFarmlandBlock extends FertilizedFarmlandBlock
+    {
         private static final FarmlandTrait RICH = new FarmlandRichTrait();
         private static final FarmlandTrait HEALTHY = new FarmlandHealthyTrait();
         private static final FarmlandTrait STABLE = new FarmlandStableTrait();
         ComboFarmlandBlock(boolean Stable) { super(Stable ? new FarmlandTrait[]{ RICH, HEALTHY, STABLE } : new FarmlandTrait[]{ RICH, HEALTHY }); }
-        private boolean hasTrait(Class<? extends FarmlandTrait> traitClass) {
-            for (FarmlandTrait trait : getTraits()) { if (traitClass.isInstance(trait)) return true; }
-            return false;
-        }
-        private boolean hasStableTrait() {
-            for (FarmlandTrait trait : getTraits()) { if (trait.isStable()) return true; }
-            return false;
-        }
+        private boolean hasTrait(Class<? extends FarmlandTrait> traitClass) { for (FarmlandTrait trait : getTraits()) { if (traitClass.isInstance(trait)) return true; } return false; }
+        private boolean hasStableTrait() { for (FarmlandTrait trait : getTraits()) { if (trait.isStable()) return true; } return false; }
         @Override
-        public boolean canSustainPlant(BlockState state, BlockGetter level, BlockPos pos, Direction facing, IPlantable plantable) {
+        public boolean canSustainPlant(BlockState state, BlockGetter level, BlockPos pos, Direction facing, IPlantable plantable)
+        {
             // Keep whatever the parent allows (saplings/flowers/etc if it does).
             if (super.canSustainPlant(state, level, pos, facing, plantable)) return true;
             // Make vanilla crops (wheat, carrots, potatoes, beetroot, etc.) accept this block as “farmland”.
             return facing == Direction.UP && plantable.getPlantType(level, pos.above()) == PlantType.CROP;
         }
         @Override
-        public void fallOn(Level level, BlockState state, BlockPos pos, Entity entity, float distance) {
-            if (hasStableTrait()) {
+        public void fallOn(Level level, BlockState state, BlockPos pos, Entity entity, float distance)
+        {
+            if (hasStableTrait())
+            {
                 // Still apply fall damage, just don't trample the farmland.
                 if (!level.isClientSide) { entity.causeFallDamage(distance, 1.0F, level.damageSources().fall()); }
                 return;
@@ -108,24 +110,27 @@ public class FertiliserForBlockheads {
             super.fallOn(level, state, pos, entity, distance);
         }
         @Override
-        public void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
+        public void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random)
+        {
             super.randomTick(state, level, pos, random);
             if (!level.getBlockState(pos).is(this)) return;
             if (hasTrait(FarmlandRichTrait.class) && hasTrait(FarmlandHealthyTrait.class) && hasStableTrait()) return;
             double chance = FarmingForBlockheadsConfigBridge.regressionChance;
             if (chance <= 0) return;
-            if (random.nextDouble() < chance) {
+            if (random.nextDouble() < chance)
+            {
                 BlockState target = Blocks.FARMLAND.defaultBlockState();
                 if (state.hasProperty(MOISTURE) && target.hasProperty(MOISTURE)) { target = target.setValue(MOISTURE, state.getValue(MOISTURE)); }
                 level.setBlock(pos, target, 3);
             }
         }
     }
-
     @Mod.EventBusSubscriber(modid = FertiliserForBlockheads.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
-    public static final class ComboGrowthHandler {
+    public static final class ComboGrowthHandler
+    {
         @SubscribeEvent
-        public static void onCropGrowPost(BlockEvent.CropGrowEvent.Post event) {
+        public static void onCropGrowPost(BlockEvent.CropGrowEvent.Post event)
+        {
             LevelAccessor acc = event.getLevel();
             if (!(acc instanceof ServerLevel level)) return;
             BlockPos cropPos = event.getPos();
@@ -146,11 +151,13 @@ public class FertiliserForBlockheads {
             level.setBlock(cropPos, crop.getStateForAge(newAge), 2);
         }
     }
-    static final class RichBonusLootModifier extends LootModifier {
+    static final class RichBonusLootModifier extends LootModifier
+    {
         public static final Codec<RichBonusLootModifier> CODEC = RecordCodecBuilder.create(inst -> codecStart(inst).apply(inst, RichBonusLootModifier::new));
         private RichBonusLootModifier(LootItemCondition[] conditions) { super(conditions); }
         @Override
-        protected ObjectArrayList<ItemStack> doApply(ObjectArrayList<ItemStack> generatedLoot, LootContext context) {
+        protected ObjectArrayList<ItemStack> doApply(ObjectArrayList<ItemStack> generatedLoot, LootContext context)
+        {
             BlockState harvested = context.getParamOrNull(LootContextParams.BLOCK_STATE);
             Vec3 origin = context.getParamOrNull(LootContextParams.ORIGIN);
             if (harvested == null || origin == null) return generatedLoot;
@@ -163,7 +170,8 @@ public class FertiliserForBlockheads {
             if (chance <= 0) return generatedLoot;
             RandomSource rand = context.getRandom();
             int baseSize = generatedLoot.size();
-            for (int idx = 0; idx < baseSize; idx++) {
+            for (int idx = 0; idx < baseSize; idx++)
+            {
                 ItemStack stack = generatedLoot.get(idx);
                 if (stack.isEmpty()) continue;
                 if (stack.is(Tags.Items.SEEDS)) continue;
@@ -175,19 +183,29 @@ public class FertiliserForBlockheads {
         @Override
         public Codec<? extends IGlobalLootModifier> codec() { return CODEC; }
     }
-    private static void addToCreativeTabs(BuildCreativeModeTabContentsEvent event) {
+    private static void addToCreativeTabs(BuildCreativeModeTabContentsEvent event)
+    {
         ResourceLocation tabId = event.getTabKey().location();
-        // Add to any Farming for Blockheads-owned tab
         if (!"farmingforblockheads".equals(tabId.getNamespace())) return;
-        event.accept(FERTILIZED_FARMLAND_RICH_HEALTHY_ITEM);
-        event.accept(FERTILIZED_FARMLAND_RICH_HEALTHY_STABLE_ITEM);
+        var entries = event.getEntries();
+        var visibility = CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS;
+        Item richAnchor = ForgeRegistries.ITEMS.getValue(ResourceLocation.parse("farmingforblockheads:fertilized_farmland_rich"));
+        Item stableAnchor = ForgeRegistries.ITEMS.getValue(ResourceLocation.parse("farmingforblockheads:fertilized_farmland_stable"));
+        ItemStack richHealthy = new ItemStack(FERTILIZED_FARMLAND_RICH_HEALTHY_ITEM.get());
+        ItemStack richHealthyStable = new ItemStack(FERTILIZED_FARMLAND_RICH_HEALTHY_STABLE_ITEM.get());
+        if (richAnchor != null) entries.putAfter(new ItemStack(richAnchor), richHealthy, visibility);
+        else entries.put(richHealthy, visibility);
+        if (stableAnchor != null) entries.putAfter(new ItemStack(stableAnchor), richHealthyStable, visibility);
+        else entries.put(richHealthyStable, visibility);
     }
-   static void applyExtraToDrop(List<ItemStack> drops, ItemStack stack, int add) {
+    static void applyExtraToDrop(List<ItemStack> drops, ItemStack stack, int add)
+    {
         if (add <= 0) return;
         int room = stack.getMaxStackSize() - stack.getCount();
         int grow = Math.min(room, add);
         if (grow > 0) { stack.grow(grow); add -= grow; }
-        while (add > 0) {
+        while (add > 0)
+        {
             int take = Math.min(add, stack.getMaxStackSize());
             ItemStack extra = stack.copy();
             extra.setCount(take);
@@ -196,13 +214,15 @@ public class FertiliserForBlockheads {
         }
     }
 }
-@Mod.EventBusSubscriber(modid= FertiliserForBlockheads.MODID,bus=Mod.EventBusSubscriber.Bus.FORGE)
-final class WorldDatapackCleanup{
-    private static final Logger LOGGER= LogUtils.getLogger();
-    private static final String BOTANYPOTS_PACK_ID= FertiliserForBlockheads.MODID+"_generated_botanypots_soils";
+@Mod.EventBusSubscriber(modid = FertiliserForBlockheads.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
+final class WorldDatapackCleanup
+{
+    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final String BOTANYPOTS_PACK_ID = FertiliserForBlockheads.MODID + "_generated_botanypots_soils";
     private WorldDatapackCleanup() {}
     @SubscribeEvent
-    public static void onServerAboutToStart(ServerAboutToStartEvent event) {
+    public static void onServerAboutToStart(ServerAboutToStartEvent event)
+    {
         Path datapacksDir=event.getServer().getWorldPath(LevelResource.DATAPACK_DIR);
         if (!Files.isDirectory(datapacksDir))return;
         boolean changed=false;
@@ -212,12 +232,7 @@ final class WorldDatapackCleanup{
     }
     private static boolean deleteRecursive(Path root) {
         if (!Files.exists(root)) return false;
-        try (var walk=Files.walk(root)) {
-            walk.sorted(java.util.Comparator.reverseOrder()).forEach(p->{try{Files.deleteIfExists(p);}catch(java.io.IOException ignored){}});
-            return true;
-        } catch (Exception e) {
-            LOGGER.warn("[FertilizerForBlockheads] Failed deleting {}",root.toAbsolutePath(),e);
-            return false;
-        }
+        try (var walk=Files.walk(root)) {  walk.sorted(java.util.Comparator.reverseOrder()).forEach(p->{try{Files.deleteIfExists(p);}catch(java.io.IOException ignored){}}); return true; }
+        catch (Exception e)  {  LOGGER.warn("[FertilizerForBlockheads] Failed deleting {}",root.toAbsolutePath(),e); return false; }
     }
 }
