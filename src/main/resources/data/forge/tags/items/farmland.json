@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
+    "minecraft:farmland",
     "fertiliserforblockheads:fertilized_farmland_rich_healthy",
     "fertiliserforblockheads:fertilized_farmland_rich_healthy_stable"
   ]
