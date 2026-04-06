@@ -1,8 +1,13 @@
 {
   "replace": false,
   "values": [
-    "minecraft:farmland",
-    "fertiliserforblockheads:fertilized_farmland_rich_healthy",
-    "fertiliserforblockheads:fertilized_farmland_rich_healthy_stable"
+    { "id": "minecraft:farmland", "required":  false},
+    { "id": "farmingforblockheads:fertilized_farmland_rich", "required": false },
+    { "id": "fertiliserforblockheads:fertilized_farmland_rich_healthy", "required": false },
+    { "id": "farmingforblockheads:fertilized_farmland_rich_stable", "required": false },
+    { "id": "farmingforblockheads:fertilized_farmland_healthy", "required": false },
+    { "id": "farmingforblockheads:fertilized_farmland_healthy_stable", "required": false },
+    { "id": "farmingforblockheads:fertilized_farmland_stable", "required": false },
+    { "id": "fertiliserforblockheads:fertilized_farmland_rich_healthy_stable", "required": false }
   ]
 }

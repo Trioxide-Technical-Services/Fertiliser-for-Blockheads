@@ -13,6 +13,7 @@ import net.minecraft.tags.BlockTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockGetter;
@@ -87,16 +88,8 @@ public class FertiliserForBlockheads
         private static final FarmlandTrait HEALTHY = new FarmlandHealthyTrait();
         private static final FarmlandTrait STABLE = new FarmlandStableTrait();
         ComboFarmlandBlock(boolean Stable) { super(Stable ? new FarmlandTrait[]{ RICH, HEALTHY, STABLE } : new FarmlandTrait[]{ RICH, HEALTHY }); }
-        private boolean hasTrait(Class<? extends FarmlandTrait> traitClass)
-        {
-            for (FarmlandTrait trait : getTraits()) { if (traitClass.isInstance(trait)) return true; }
-            return false;
-        }
-        private boolean hasStableTrait()
-        {
-            for (FarmlandTrait trait : getTraits()) { if (trait.isStable()) return true; }
-            return false;
-        }
+        private boolean hasTrait(Class<? extends FarmlandTrait> traitClass) { for (FarmlandTrait trait : getTraits()) { if (traitClass.isInstance(trait)) return true; } return false; }
+        private boolean hasStableTrait() { for (FarmlandTrait trait : getTraits()) { if (trait.isStable()) return true; } return false; }
         @Override
         public boolean canSustainPlant(BlockState state, BlockGetter level, BlockPos pos, Direction facing, IPlantable plantable)
         {
@@ -193,13 +186,20 @@ public class FertiliserForBlockheads
     private static void addToCreativeTabs(BuildCreativeModeTabContentsEvent event)
     {
         ResourceLocation tabId = event.getTabKey().location();
-        // Add to any Farming for Blockheads-owned tab
         if (!"farmingforblockheads".equals(tabId.getNamespace())) return;
-        event.accept(FERTILIZED_FARMLAND_RICH_HEALTHY_ITEM);
-        event.accept(FERTILIZED_FARMLAND_RICH_HEALTHY_STABLE_ITEM);
+        var entries = event.getEntries();
+        var visibility = CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS;
+        Item richAnchor = ForgeRegistries.ITEMS.getValue(ResourceLocation.parse("farmingforblockheads:fertilized_farmland_rich"));
+        Item stableAnchor = ForgeRegistries.ITEMS.getValue(ResourceLocation.parse("farmingforblockheads:fertilized_farmland_stable"));
+        ItemStack richHealthy = new ItemStack(FERTILIZED_FARMLAND_RICH_HEALTHY_ITEM.get());
+        ItemStack richHealthyStable = new ItemStack(FERTILIZED_FARMLAND_RICH_HEALTHY_STABLE_ITEM.get());
+        if (richAnchor != null) entries.putAfter(new ItemStack(richAnchor), richHealthy, visibility);
+        else entries.put(richHealthy, visibility);
+        if (stableAnchor != null) entries.putAfter(new ItemStack(stableAnchor), richHealthyStable, visibility);
+        else entries.put(richHealthyStable, visibility);
     }
-   static void applyExtraToDrop(List<ItemStack> drops, ItemStack stack, int add)
-   {
+    static void applyExtraToDrop(List<ItemStack> drops, ItemStack stack, int add)
+    {
         if (add <= 0) return;
         int room = stack.getMaxStackSize() - stack.getCount();
         int grow = Math.min(room, add);
@@ -221,7 +221,8 @@ final class WorldDatapackCleanup
     private static final String BOTANYPOTS_PACK_ID = FertiliserForBlockheads.MODID + "_generated_botanypots_soils";
     private WorldDatapackCleanup() {}
     @SubscribeEvent
-    public static void onServerAboutToStart(ServerAboutToStartEvent event) {
+    public static void onServerAboutToStart(ServerAboutToStartEvent event)
+    {
         Path datapacksDir=event.getServer().getWorldPath(LevelResource.DATAPACK_DIR);
         if (!Files.isDirectory(datapacksDir))return;
         boolean changed=false;
@@ -231,15 +232,7 @@ final class WorldDatapackCleanup
     }
     private static boolean deleteRecursive(Path root) {
         if (!Files.exists(root)) return false;
-        try (var walk=Files.walk(root))
-        {
-            walk.sorted(java.util.Comparator.reverseOrder()).forEach(p->{try{Files.deleteIfExists(p);}catch(java.io.IOException ignored){}});
-            return true;
-        }
-        catch (Exception e)
-        {
-            LOGGER.warn("[FertilizerForBlockheads] Failed deleting {}",root.toAbsolutePath(),e);
-            return false;
-        }
+        try (var walk=Files.walk(root)) {  walk.sorted(java.util.Comparator.reverseOrder()).forEach(p->{try{Files.deleteIfExists(p);}catch(java.io.IOException ignored){}}); return true; }
+        catch (Exception e)  {  LOGGER.warn("[FertilizerForBlockheads] Failed deleting {}",root.toAbsolutePath(),e); return false; }
     }
 }
