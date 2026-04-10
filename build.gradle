@@ -3,42 +3,13 @@ plugins
     id 'eclipse'
     id 'idea'
     id 'maven-publish'
-    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+    id 'net.neoforged.gradle.userdev' version '7.1.21'
 }
 version = project.mod_version
-group = 'com.goldmike.fertiliserforblockheads'
-base { archivesName = 'fertiliserforblockheads' }
-java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+group = project.mod_group_id
+base { archivesName = project.mod_id }
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
-minecraft
-{
-    mappings channel: mapping_channel, version: mapping_version
-    copyIdeResources = true
-    runs
-    {
-        configureEach
-        {
-            workingDirectory project.file('run')
-            property 'forge.logging.markers', 'REGISTRIES'
-            property 'forge.logging.console.level', 'debug'
-            property 'mixin.env.remapRefMap', 'true'
-            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
-            mods { "${mod_id}" { source sourceSets.main } }
-        }
-        client { property 'forge.enabledGameTestNamespaces', mod_id }
-        server
-        {
-            property 'forge.enabledGameTestNamespaces', mod_id
-            args '--nogui'
-        }
-        gameTestServer { property 'forge.enabledGameTestNamespaces', mod_id }
-        data
-        {
-            workingDirectory project.file('run-data')
-            args '--mod', mod_id, '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
-        }
-    }
-}
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 repositories
 {
@@ -47,53 +18,36 @@ repositories
 }
 dependencies
 {
-    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
-    compileOnly fg.deobf("curse.maven:emi-580555:6420945")
-    compileOnly fg.deobf("net.darkhax.botanypots:BotanyPots-Forge-1.20.1:13.0.41")
-    compileOnly fg.deobf("net.darkhax.bookshelf:Bookshelf-Forge-1.20.1:20.2.13")
-    implementation fg.deobf("curse.maven:balm-531761:7087245")
-    implementation fg.deobf("curse.maven:farming-for-blockheads-261924:7048376")
-    runtimeOnly fg.deobf("curse.maven:architectury-api-419699:5137938")
-    runtimeOnly fg.deobf("curse.maven:bookshelf-228525:5423987")
-    runtimeOnly fg.deobf("curse.maven:botany-pots-353928:6348581")
-    runtimeOnly fg.deobf("curse.maven:emi-580555:6420945")
-    runtimeOnly fg.deobf("curse.maven:kubejs-238086:5853326")
-    runtimeOnly fg.deobf("curse.maven:lmft-656346:4892299")
-    runtimeOnly fg.deobf("curse.maven:rhino-416294:6186971")
-    runtimeOnly fg.deobf("curse.maven:tmrv-1194921:7259315")
+    implementation "net.neoforged:neoforge:${neo_version}"
+    compileOnly "curse.maven:bookshelf-228525:7606240"
+    compileOnly "curse.maven:botany-pots-353928:7115287"
+    compileOnly "curse.maven:emi-580555:6420931"
+    implementation "curse.maven:balm-531761:7420963"
+    implementation "curse.maven:farming-for-blockheads-261924:7652500"
+    localRuntime "curse.maven:architectury-api-419699:5786327"
+    localRuntime "curse.maven:bookshelf-228525:7606240"
+    localRuntime "curse.maven:botany-pots-353928:7115287"
+    localRuntime "curse.maven:emi-580555:6420931"
+    localRuntime "curse.maven:prickle-1023259:6961457"
+    localRuntime "curse.maven:tmrv-1194921:7785753"
 }
-tasks.named('processResources', ProcessResources).configure
+runs
 {
-    var replaceProperties = [
-            minecraft_version: minecraft_version, minecraft_version_range: minecraft_version_range,
-            forge_version: forge_version, forge_version_range: forge_version_range,
-            loader_version_range: loader_version_range,
-            mod_id: mod_id, mod_name: mod_name, mod_license: mod_license, mod_version: mod_version,
-            mod_authors: mod_authors, mod_description: mod_description,
-    ]
-    inputs.properties replaceProperties
-    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) { expand replaceProperties + [project: project] }
-}
-tasks.named('jar', Jar).configure
-{
-    manifest
+    configureEach
     {
-        attributes([
-                'Specification-Title'     : mod_id,
-                'Specification-Vendor'    : mod_authors,
-                'Specification-Version'   : '1', // We are version 1 of ourselves
-                'Implementation-Title'    : project.name,
-                'Implementation-Version'  : project.jar.archiveVersion,
-                'Implementation-Vendor'   : mod_authors,
-                'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
-        ])
+        it.systemProperties.put('forge.logging.markers', 'REGISTRIES')
+        it.systemProperties.put('forge.logging.console.level', 'debug')
     }
-    finalizedBy 'reobfJar'
-}
-publishing
+    client { systemProperties.put('neoforge.enabledGameTestNamespaces', project.mod_id.toString()) }
+    server
     {
-        publications { register('mavenJava', MavenPublication) { artifact jar } }
-        repositories { maven { url "file://${project.projectDir}/mcmodsrepo" }
+        systemProperties.put('neoforge.enabledGameTestNamespaces', project.mod_id.toString())
+        arguments.add('--nogui')
+    }
+    gameTestServer { systemProperties.put('neoforge.enabledGameTestNamespaces', project.mod_id.toString()) }
+    data
+    {
+        workingDirectory = project.file('run-data')
+        arguments.addAll(['--mod', project.mod_id.toString(), '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()])
     }
 }
-tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }

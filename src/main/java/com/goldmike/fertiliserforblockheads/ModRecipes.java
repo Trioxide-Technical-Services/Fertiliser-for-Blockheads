@@ -1,58 +1,54 @@
 package com.goldmike.fertiliserforblockheads;
+import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.function.Supplier;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
-import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.ItemTags;
-import net.minecraft.world.inventory.CraftingContainer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.crafting.*;
+import net.minecraft.world.item.crafting.CraftingBookCategory;
+import net.minecraft.world.item.crafting.CraftingInput;
+import net.minecraft.world.item.crafting.CustomRecipe;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.RecipeSerializer;
+import net.minecraft.world.item.crafting.SimpleCraftingRecipeSerializer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.RegistryObject;
-import javax.annotation.ParametersAreNonnullByDefault;
+import net.neoforged.neoforge.registries.DeferredRegister;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public final class ModRecipes
 {
-    public static final DeferredRegister<RecipeSerializer<?>> SERIALIZERS = DeferredRegister.create(ForgeRegistries.RECIPE_SERIALIZERS, FertiliserForBlockheads.MODID);
-    public static final RegistryObject<RecipeSerializer<?>> FARMLAND = SERIALIZERS.register("farmland", () -> new SimpleCraftingRecipeSerializer<>(farmland::new));
+    public static final DeferredRegister<RecipeSerializer<?>> SERIALIZERS = DeferredRegister.create(Registries.RECIPE_SERIALIZER, FertiliserForBlockheads.MODID);
+    public static final Supplier<RecipeSerializer<?>> FARMLAND = SERIALIZERS.register("farmland", () -> new SimpleCraftingRecipeSerializer<>(farmland::new));
     private ModRecipes() {}
 }
-/**
- * Dirt + any hoe -> 1x minecraft:farmland
- * Hoe is returned with 1 durability damage.
- */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 final class farmland extends CustomRecipe
 {
-    public farmland(ResourceLocation id, CraftingBookCategory category) { super(id, category); }
+    public farmland(CraftingBookCategory category) { super(category); }
     @Override
-    public ItemStack assemble(CraftingContainer inv, RegistryAccess regs) { return new ItemStack(Items.FARMLAND); }
-    @Override
-    public boolean canCraftInDimensions(int w, int h) {
-        return w * h >= 2;
-    }
-    @Override
-    public boolean matches(CraftingContainer inv, Level level)
+    public boolean matches(CraftingInput inv, Level level)
     {
         boolean foundDirt = false;
         boolean foundHoe = false;
-        for (int i = 0; i < inv.getContainerSize(); i++)
+        for (int i = 0; i < inv.size(); i++)
         {
             ItemStack s = inv.getItem(i);
             if (s.isEmpty()) continue;
             if (!foundDirt && s.is(Items.DIRT))  { foundDirt = true; continue; }
             if (!foundHoe && s.is(ItemTags.HOES)) { foundHoe = true; continue; }
-            // Any extra junk in the grid invalidates the recipe.
             return false;
         }
         return foundDirt && foundHoe;
     }
+    @Override
+    public ItemStack assemble(CraftingInput inv, HolderLookup.Provider regs) { return new ItemStack(Items.FARMLAND); }
+    @Override
+    public boolean canCraftInDimensions(int w, int h) { return w * h >= 2; }
     @Override
     public NonNullList<Ingredient> getIngredients()
     {
@@ -62,22 +58,20 @@ final class farmland extends CustomRecipe
         return ingredients;
     }
     @Override
-    public ItemStack getResultItem(RegistryAccess regs) {
+    public ItemStack getResultItem(HolderLookup.Provider regs) {
         return new ItemStack(Blocks.FARMLAND);
     }
     @Override
-    public NonNullList<ItemStack> getRemainingItems(CraftingContainer inv)
+    public NonNullList<ItemStack> getRemainingItems(CraftingInput inv)
     {
-        NonNullList<ItemStack> remaining = NonNullList.withSize(inv.getContainerSize(), ItemStack.EMPTY);
-        for (int i = 0; i < inv.getContainerSize(); i++)
+        NonNullList<ItemStack> remaining = NonNullList.withSize(inv.size(), ItemStack.EMPTY);
+        for (int i = 0; i < inv.size(); i++)
         {
             ItemStack s = inv.getItem(i);
             if (s.isEmpty()) continue;
             if (s.is(ItemTags.HOES))
             {
                 ItemStack copy = s.copy();
-                // Damage by 1. If it breaks, it vanishes like any other tool.
-                // Just damage the item manually without going through hurt()
                 copy.setDamageValue(copy.getDamageValue() + 1);
                 boolean broke = copy.getDamageValue() >= copy.getMaxDamage();
                 remaining.set(i, broke ? ItemStack.EMPTY : copy);
@@ -88,9 +82,4 @@ final class farmland extends CustomRecipe
     }
     @Override
     public RecipeSerializer<?> getSerializer() { return ModRecipes.FARMLAND.get(); }
-    @Override
-    public boolean isSpecial() {
-        // Show in recipe book / JEI.
-        return true;
-    }
 }

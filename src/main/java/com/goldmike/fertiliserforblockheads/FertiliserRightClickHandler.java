@@ -1,5 +1,6 @@
 package com.goldmike.fertiliserforblockheads;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -7,13 +8,12 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.FarmBlock;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.event.entity.player.PlayerInteractEvent;
-import net.minecraftforge.eventbus.api.Event;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.registries.ForgeRegistries;
-@Mod.EventBusSubscriber(modid = FertiliserForBlockheads.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.common.util.TriState;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
+@EventBusSubscriber(modid = FertiliserForBlockheads.MODID)
 public final class FertiliserRightClickHandler
 {
     private static final int RICH = 1;    // green
@@ -35,17 +35,14 @@ public final class FertiliserRightClickHandler
     {
         Level level = e.getLevel();
         if (level.isClientSide()) return;
-        // avoid double-firing weirdness
         if (e.getHand() != InteractionHand.MAIN_HAND) return;
         ItemStack held = e.getItemStack();
-        ResourceLocation heldId = ForgeRegistries.ITEMS.getKey(held.getItem());
-        if (heldId == null) return;
+        ResourceLocation heldId = BuiltInRegistries.ITEM.getKey(held.getItem());
         int add;
         if (heldId.equals(GREEN)) add = RICH;
         else if (heldId.equals(RED)) add = HEALTHY;
         else if (heldId.equals(YELLOW)) add = STABLE;
-        else return; // not one of the fertilisers
-        // If you clicked a crop (or anything) on top of farmland, operate on the farmland below.
+        else return;
         BlockPos pos = e.getPos();
         BlockState state = level.getBlockState(pos);
         if (!(state.getBlock() instanceof FarmBlock))
@@ -59,22 +56,20 @@ public final class FertiliserRightClickHandler
             }
             else { return; }
         }
-        ResourceLocation blockId = ForgeRegistries.BLOCKS.getKey(state.getBlock());
-        if (blockId == null) return;
+        ResourceLocation blockId = BuiltInRegistries.BLOCK.getKey(state.getBlock());
         int current = flagsFromBlock(blockId);
         if (current < 0) return;
         int next = current | add;
-        if (next == current) return; // already has that effect, nothing to change
+        if (next == current) return;
         ResourceLocation targetId = blockFromFlags(next);
         if (targetId == null) return;
-        var targetBlock = ForgeRegistries.BLOCKS.getValue(targetId);
-        if (targetBlock == null) return;
+        var targetBlock = BuiltInRegistries.BLOCK.get(targetId);
         BlockState newState = targetBlock.defaultBlockState();
         if (state.hasProperty(FarmBlock.MOISTURE) && newState.hasProperty(FarmBlock.MOISTURE)) { newState = newState.setValue(FarmBlock.MOISTURE, state.getValue(FarmBlock.MOISTURE)); }
         level.setBlock(pos, newState, 3);
         if (!e.getEntity().getAbilities().instabuild) { held.shrink(1); }
-        e.setUseBlock(Event.Result.DENY);
-        e.setUseItem(Event.Result.DENY);
+        e.setUseBlock(TriState.FALSE);
+        e.setUseItem(TriState.FALSE);
         e.setCanceled(true);
         e.setCancellationResult(InteractionResult.SUCCESS);
     }

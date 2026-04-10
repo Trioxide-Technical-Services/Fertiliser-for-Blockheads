@@ -1,6 +1,6 @@
 package com.goldmike.fertiliserforblockheads;
 import com.electronwill.nightconfig.core.file.CommentedFileConfig;
-import net.minecraftforge.fml.loading.FMLPaths;
+import net.neoforged.fml.loading.FMLPaths;
 import java.nio.file.Files;
 import java.nio.file.Path;
 public final class FarmingForBlockheadsConfigBridge
@@ -11,18 +11,12 @@ public final class FarmingForBlockheadsConfigBridge
     public static void load()
     {
         Path path = FMLPaths.CONFIGDIR.get().resolve("farmingforblockheads-common.toml");
-        if (!Files.exists(path))
-        {
-            // FFB might not have generated it yet; keep defaults
-            return;
-        }
+        if (!Files.exists(path)) { return; }
         try (CommentedFileConfig cfg = CommentedFileConfig.builder(path).sync().build())
         {
             cfg.load();
-            // Don't clamp these: if someone sets > 1.0, your rollExtraCount() can treat it as multiple bonuses.
             bonusGrowthChance = getDouble(cfg, "fertilizerBonusGrowthChance", 1.0);
             bonusCropChance   = getDouble(cfg, "fertilizerBonusCropChance",   1.0);
-            // Regression is genuinely a 0..1 probability.
             regressionChance  = clamp01(getDouble(cfg, "fertilizerRegressionChance", 0.0));
         }
     }

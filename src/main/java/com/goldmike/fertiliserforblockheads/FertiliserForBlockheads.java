@@ -1,12 +1,18 @@
 package com.goldmike.fertiliserforblockheads;
 import com.mojang.logging.LogUtils;
-import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.function.Supplier;
+import javax.annotation.ParametersAreNonnullByDefault;
 import net.blay09.mods.farmingforblockheads.block.FertilizedFarmlandBlock;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
@@ -28,46 +34,41 @@ import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.common.IPlantable;
-import net.minecraftforge.common.PlantType;
-import net.minecraftforge.common.Tags;
-import net.minecraftforge.common.loot.IGlobalLootModifier;
-import net.minecraftforge.common.loot.LootModifier;
-import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
-import net.minecraftforge.event.level.BlockEvent;
-import net.minecraftforge.event.server.ServerAboutToStartEvent;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.neoforge.common.Tags;
+import net.neoforged.neoforge.common.loot.IGlobalLootModifier;
+import net.neoforged.neoforge.common.loot.LootModifier;
+import net.neoforged.neoforge.common.util.TriState;
+import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
+import net.neoforged.neoforge.event.level.block.CropGrowEvent;
+import net.neoforged.neoforge.event.server.ServerAboutToStartEvent;
+import net.neoforged.neoforge.registries.DeferredBlock;
+import net.neoforged.neoforge.registries.DeferredItem;
+import net.neoforged.neoforge.registries.DeferredRegister;
+import net.neoforged.neoforge.registries.NeoForgeRegistries;
 import org.slf4j.Logger;
-import javax.annotation.ParametersAreNonnullByDefault;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
 @Mod(FertiliserForBlockheads.MODID)
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class FertiliserForBlockheads
 {
     public static final String MODID = "fertiliserforblockheads";
-    public static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, MODID);
-    public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
-    private static final DeferredRegister<Codec<? extends IGlobalLootModifier>> LOOT_MODIFIERS = DeferredRegister.create(ForgeRegistries.Keys.GLOBAL_LOOT_MODIFIER_SERIALIZERS, MODID);
+    public static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(MODID);
+    public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(MODID);
+    private static final DeferredRegister<MapCodec<? extends IGlobalLootModifier>> LOOT_MODIFIERS = DeferredRegister.create(NeoForgeRegistries.Keys.GLOBAL_LOOT_MODIFIER_SERIALIZERS, MODID);
     // New combo blocks (missing from Farming for Blockheads)
-    public static final RegistryObject<Block> FERTILIZED_FARMLAND_RICH_HEALTHY = BLOCKS.register("fertilized_farmland_rich_healthy", () -> new ComboFarmlandBlock(false));
-    public static final RegistryObject<Block> FERTILIZED_FARMLAND_RICH_HEALTHY_STABLE = BLOCKS.register("fertilized_farmland_rich_healthy_stable", () -> new ComboFarmlandBlock(true));
+    public static final DeferredBlock<Block> FERTILIZED_FARMLAND_RICH_HEALTHY = BLOCKS.register("fertilized_farmland_rich_healthy", () -> new ComboFarmlandBlock(false));
+    public static final DeferredBlock<Block> FERTILIZED_FARMLAND_RICH_HEALTHY_STABLE = BLOCKS.register("fertilized_farmland_rich_healthy_stable", () -> new ComboFarmlandBlock(true));
     // BlockItems so they can be crafted / held + show FFB-style tooltips
-    public static final RegistryObject<Item> FERTILIZED_FARMLAND_RICH_HEALTHY_ITEM = ITEMS.register("fertilized_farmland_rich_healthy", () -> new BlockItem(FERTILIZED_FARMLAND_RICH_HEALTHY.get(), new Item.Properties()));
-    public static final RegistryObject<Item> FERTILIZED_FARMLAND_RICH_HEALTHY_STABLE_ITEM = ITEMS.register("fertilized_farmland_rich_healthy_stable", () -> new BlockItem(FERTILIZED_FARMLAND_RICH_HEALTHY_STABLE.get(), new Item.Properties()));
+    public static final DeferredItem<Item> FERTILIZED_FARMLAND_RICH_HEALTHY_ITEM = ITEMS.register("fertilized_farmland_rich_healthy", () -> new BlockItem(FERTILIZED_FARMLAND_RICH_HEALTHY.get(), new Item.Properties()));
+    public static final DeferredItem<Item> FERTILIZED_FARMLAND_RICH_HEALTHY_STABLE_ITEM = ITEMS.register("fertilized_farmland_rich_healthy_stable", () -> new BlockItem(FERTILIZED_FARMLAND_RICH_HEALTHY_STABLE.get(), new Item.Properties()));
     @SuppressWarnings("unused")
-    private static final RegistryObject<Codec<? extends IGlobalLootModifier>> RICH_BONUS = LOOT_MODIFIERS.register("rich_bonus", () -> RichBonusLootModifier.CODEC);
-    public FertiliserForBlockheads(FMLJavaModLoadingContext ctx)
+    private static final Supplier<MapCodec<? extends IGlobalLootModifier>> RICH_BONUS = LOOT_MODIFIERS.register("rich_bonus", () -> RichBonusLootModifier.CODEC);
+    public FertiliserForBlockheads(IEventBus modBus)
     {
-        IEventBus modBus = ctx.getModEventBus();
         BLOCKS.register(modBus);
         ITEMS.register(modBus);
         LOOT_MODIFIERS.register(modBus);
@@ -84,27 +85,26 @@ public class FertiliserForBlockheads
     }
     static final class ComboFarmlandBlock extends FertilizedFarmlandBlock
     {
-        private static final FarmlandTrait RICH = new FarmlandRichTrait();
-        private static final FarmlandTrait HEALTHY = new FarmlandHealthyTrait();
-        private static final FarmlandTrait STABLE = new FarmlandStableTrait();
-        ComboFarmlandBlock(boolean Stable) { super(Stable ? new FarmlandTrait[]{ RICH, HEALTHY, STABLE } : new FarmlandTrait[]{ RICH, HEALTHY }); }
-        private boolean hasTrait(Class<? extends FarmlandTrait> traitClass) { for (FarmlandTrait trait : getTraits()) { if (traitClass.isInstance(trait)) return true; } return false; }
-        private boolean hasStableTrait() { for (FarmlandTrait trait : getTraits()) { if (trait.isStable()) return true; } return false; }
-        @Override
-        public boolean canSustainPlant(BlockState state, BlockGetter level, BlockPos pos, Direction facing, IPlantable plantable)
+        private final boolean stable;
+
+        ComboFarmlandBlock(boolean stable)
         {
-            // Keep whatever the parent allows (saplings/flowers/etc if it does).
-            if (super.canSustainPlant(state, level, pos, facing, plantable)) return true;
-            // Make vanilla crops (wheat, carrots, potatoes, beetroot, etc.) accept this block as “farmland”.
-            return facing == Direction.UP && plantable.getPlantType(level, pos.above()) == PlantType.CROP;
+            super(Properties.ofFullCopy(Blocks.FARMLAND));
+            this.stable = stable;
+        }
+        @Override
+        public TriState canSustainPlant(BlockState state, BlockGetter level, BlockPos pos, Direction facing, BlockState plant)
+        {
+            TriState parent = super.canSustainPlant(state, level, pos, facing, plant);
+            if (parent != TriState.DEFAULT) return parent;
+            return facing == Direction.UP && plant.is(BlockTags.CROPS) ? TriState.TRUE : TriState.DEFAULT;
         }
         @Override
         public void fallOn(Level level, BlockState state, BlockPos pos, Entity entity, float distance)
         {
-            if (hasStableTrait())
+            if (stable)
             {
-                // Still apply fall damage, just don't trample the farmland.
-                if (!level.isClientSide) { entity.causeFallDamage(distance, 1.0F, level.damageSources().fall()); }
+                if (!level.isClientSide) entity.causeFallDamage(distance, 1.0F, level.damageSources().fall());
                 return;
             }
             super.fallOn(level, state, pos, entity, distance);
@@ -114,22 +114,22 @@ public class FertiliserForBlockheads
         {
             super.randomTick(state, level, pos, random);
             if (!level.getBlockState(pos).is(this)) return;
-            if (hasTrait(FarmlandRichTrait.class) && hasTrait(FarmlandHealthyTrait.class) && hasStableTrait()) return;
+            if (state.is(FERTILIZED_FARMLAND_RICH_HEALTHY_STABLE.get())) return;
             double chance = FarmingForBlockheadsConfigBridge.regressionChance;
             if (chance <= 0) return;
             if (random.nextDouble() < chance)
             {
                 BlockState target = Blocks.FARMLAND.defaultBlockState();
-                if (state.hasProperty(MOISTURE) && target.hasProperty(MOISTURE)) { target = target.setValue(MOISTURE, state.getValue(MOISTURE)); }
+                if (state.hasProperty(MOISTURE) && target.hasProperty(MOISTURE)) target = target.setValue(MOISTURE, state.getValue(MOISTURE));
                 level.setBlock(pos, target, 3);
             }
         }
     }
-    @Mod.EventBusSubscriber(modid = FertiliserForBlockheads.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
+    @EventBusSubscriber(modid = FertiliserForBlockheads.MODID)
     public static final class ComboGrowthHandler
     {
         @SubscribeEvent
-        public static void onCropGrowPost(BlockEvent.CropGrowEvent.Post event)
+        public static void onCropGrowPost(CropGrowEvent.Post event)
         {
             LevelAccessor acc = event.getLevel();
             if (!(acc instanceof ServerLevel level)) return;
@@ -153,7 +153,7 @@ public class FertiliserForBlockheads
     }
     static final class RichBonusLootModifier extends LootModifier
     {
-        public static final Codec<RichBonusLootModifier> CODEC = RecordCodecBuilder.create(inst -> codecStart(inst).apply(inst, RichBonusLootModifier::new));
+        public static final MapCodec<RichBonusLootModifier> CODEC = RecordCodecBuilder.mapCodec(inst -> codecStart(inst).apply(inst, RichBonusLootModifier::new));
         private RichBonusLootModifier(LootItemCondition[] conditions) { super(conditions); }
         @Override
         protected ObjectArrayList<ItemStack> doApply(ObjectArrayList<ItemStack> generatedLoot, LootContext context)
@@ -181,22 +181,19 @@ public class FertiliserForBlockheads
             return generatedLoot;
         }
         @Override
-        public Codec<? extends IGlobalLootModifier> codec() { return CODEC; }
+        public MapCodec<? extends IGlobalLootModifier> codec() { return CODEC; }
     }
     private static void addToCreativeTabs(BuildCreativeModeTabContentsEvent event)
     {
         ResourceLocation tabId = event.getTabKey().location();
         if (!"farmingforblockheads".equals(tabId.getNamespace())) return;
-        var entries = event.getEntries();
         var visibility = CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS;
-        Item richAnchor = ForgeRegistries.ITEMS.getValue(ResourceLocation.parse("farmingforblockheads:fertilized_farmland_rich"));
-        Item stableAnchor = ForgeRegistries.ITEMS.getValue(ResourceLocation.parse("farmingforblockheads:fertilized_farmland_stable"));
+        Item richAnchor = BuiltInRegistries.ITEM.get(ResourceLocation.parse("farmingforblockheads:fertilized_farmland_rich"));
+        Item stableAnchor = BuiltInRegistries.ITEM.get(ResourceLocation.parse("farmingforblockheads:fertilized_farmland_stable"));
         ItemStack richHealthy = new ItemStack(FERTILIZED_FARMLAND_RICH_HEALTHY_ITEM.get());
         ItemStack richHealthyStable = new ItemStack(FERTILIZED_FARMLAND_RICH_HEALTHY_STABLE_ITEM.get());
-        if (richAnchor != null) entries.putAfter(new ItemStack(richAnchor), richHealthy, visibility);
-        else entries.put(richHealthy, visibility);
-        if (stableAnchor != null) entries.putAfter(new ItemStack(stableAnchor), richHealthyStable, visibility);
-        else entries.put(richHealthyStable, visibility);
+        event.insertAfter(new ItemStack(richAnchor), richHealthy, visibility);
+        event.insertAfter(new ItemStack(stableAnchor), richHealthyStable, visibility);
     }
     static void applyExtraToDrop(List<ItemStack> drops, ItemStack stack, int add)
     {
@@ -214,7 +211,7 @@ public class FertiliserForBlockheads
         }
     }
 }
-@Mod.EventBusSubscriber(modid = FertiliserForBlockheads.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
+@EventBusSubscriber(modid = FertiliserForBlockheads.MODID)
 final class WorldDatapackCleanup
 {
     private static final Logger LOGGER = LogUtils.getLogger();

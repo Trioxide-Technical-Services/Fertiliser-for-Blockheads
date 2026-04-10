@@ -8,15 +8,17 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.logging.LogUtils;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.packs.PackLocationInfo;
+import net.minecraft.server.packs.PackSelectionConfig;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.PathPackResources;
 import net.minecraft.server.packs.repository.Pack;
 import net.minecraft.server.packs.repository.PackSource;
-import net.minecraftforge.event.AddPackFindersEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.ModList;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.loading.FMLPaths;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModList;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.loading.FMLPaths;
+import net.neoforged.neoforge.event.AddPackFindersEvent;
 import org.slf4j.Logger;
 import java.io.Reader;
 import java.io.Writer;
@@ -30,7 +32,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-@Mod.EventBusSubscriber(modid = FertiliserForBlockheads.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
+@EventBusSubscriber(modid = FertiliserForBlockheads.MODID)
 public final class BotanyPotsCompat
 {
     private static final Logger LOGGER = LogUtils.getLogger();
@@ -58,7 +60,10 @@ public final class BotanyPotsCompat
         }
         event.addRepositorySource(consumer -> {
             Component title = Component.literal("FertiliserForBlockheads: BotanyPots soils/crops (generated)");
-            Pack pack = Pack.readMetaAndCreate(GENERATED_PACK_ID, title, true, (id) -> new PathPackResources(id, GENERATED_PACK_ROOT, true), PackType.SERVER_DATA, Pack.Position.TOP, PackSource.BUILT_IN);
+            PackLocationInfo location = new PackLocationInfo(GENERATED_PACK_ID, title, PackSource.BUILT_IN, java.util.Optional.empty());
+            Pack.ResourcesSupplier resources = new PathPackResources.PathResourcesSupplier(GENERATED_PACK_ROOT);
+            PackSelectionConfig selection = new PackSelectionConfig(true, Pack.Position.TOP, false);
+            Pack pack = Pack.readMetaAndCreate(location, resources, PackType.SERVER_DATA, selection);
             if (pack != null) consumer.accept(pack);
         });
     }
@@ -66,7 +71,7 @@ public final class BotanyPotsCompat
     {
         deleteRecursive();
         Files.createDirectories(GENERATED_PACK_ROOT);
-        Files.writeString(GENERATED_PACK_ROOT.resolve("pack.mcmeta"),"{\n  \"pack\": {\n    \"pack_format\": 15,\n    \"description\": \"Generated BotanyPots soil/crop recipes for FertiliserForBlockheads\"\n  }\n}\n",StandardCharsets.UTF_8,StandardOpenOption.CREATE,StandardOpenOption.TRUNCATE_EXISTING);
+        Files.writeString(GENERATED_PACK_ROOT.resolve("pack.mcmeta"),"{\n  \"pack\": {\n    \"pack_format\": 48,\n    \"description\": \"Generated BotanyPots soil/crop recipes for FertiliserForBlockheads\"\n  }\n}\n",StandardCharsets.UTF_8,StandardOpenOption.CREATE,StandardOpenOption.TRUNCATE_EXISTING);
         double bonusGrowthChance = getFfbFertiliserBonusGrowthChance();
         double bonusCropChance = getFfbFertiliserBonusCropChance();
         Path selfSoilDir = GENERATED_PACK_ROOT.resolve("data").resolve("botanypots").resolve("recipes").resolve(FertiliserForBlockheads.MODID).resolve("soil");
