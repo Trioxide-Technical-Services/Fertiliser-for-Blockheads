@@ -124,6 +124,17 @@ public class FertiliserForBlockheads
                 level.setBlock(pos, target, 3);
             }
         }
+        @Override
+        public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<net.minecraft.network.chat.Component> tooltip, net.minecraft.world.item.TooltipFlag flag)
+        {
+            super.appendHoverText(stack, context, tooltip, flag);
+            tooltip.add(net.minecraft.network.chat.Component.translatable("tooltip.fertiliserforblockheads.rich").withStyle(net.minecraft.ChatFormatting.GREEN));
+            tooltip.add(net.minecraft.network.chat.Component.translatable("tooltip.fertiliserforblockheads.healthy").withStyle(net.minecraft.ChatFormatting.RED));
+            if (stable)
+            {
+                tooltip.add(net.minecraft.network.chat.Component.translatable("tooltip.fertiliserforblockheads.stable").withStyle(net.minecraft.ChatFormatting.YELLOW));
+            }
+        }
     }
     @EventBusSubscriber(modid = FertiliserForBlockheads.MODID)
     public static final class ComboGrowthHandler
@@ -215,7 +226,6 @@ public class FertiliserForBlockheads
 final class WorldDatapackCleanup
 {
     private static final Logger LOGGER = LogUtils.getLogger();
-    private static final String BOTANYPOTS_PACK_ID = FertiliserForBlockheads.MODID + "_generated_botanypots_soils";
     private WorldDatapackCleanup() {}
     @SubscribeEvent
     public static void onServerAboutToStart(ServerAboutToStartEvent event)
@@ -223,9 +233,12 @@ final class WorldDatapackCleanup
         Path datapacksDir=event.getServer().getWorldPath(LevelResource.DATAPACK_DIR);
         if (!Files.isDirectory(datapacksDir))return;
         boolean changed=false;
-        changed|=deleteRecursive(datapacksDir.resolve(BOTANYPOTS_PACK_ID));
-        try { changed |= Files.deleteIfExists(datapacksDir.resolve(BOTANYPOTS_PACK_ID+".zip")); } catch (Exception ignored) {}
-        if (changed) LOGGER.warn("[FertilizerForBlockheads] Removed stale world datapack '{}' so the generated config pack is used for this save.",BOTANYPOTS_PACK_ID);
+        for (String packId : List.of(BotanyPotsCompat.GENERATED_PACK_ID, BotanyPotsCompat.LEGACY_GENERATED_PACK_ID, BotanyPotsCompat.LEGACY_WORLD_PACK_ID))
+        {
+            changed |= deleteRecursive(datapacksDir.resolve(packId));
+            try { changed |= Files.deleteIfExists(datapacksDir.resolve(packId+".zip")); } catch (Exception ignored) {}
+        }
+        if (changed) LOGGER.warn("[FertilizerForBlockheads] Removed stale Botany Pots datapacks so the generated config pack is used for this save.");
     }
     private static boolean deleteRecursive(Path root) {
         if (!Files.exists(root)) return false;

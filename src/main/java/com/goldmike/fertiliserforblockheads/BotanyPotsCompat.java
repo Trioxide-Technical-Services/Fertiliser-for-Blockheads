@@ -39,7 +39,9 @@ public final class BotanyPotsCompat
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
     private static final String CATEGORY_FARMLAND = "farmland";
     private static final String CATEGORY_FARMLAND_RICH = "farmland_rich";
-    private static final String GENERATED_PACK_ID = FertiliserForBlockheads.MODID + "_botany_pots_comapt";
+    static final String GENERATED_PACK_ID = FertiliserForBlockheads.MODID + "_botany_pots_compat";
+    static final String LEGACY_GENERATED_PACK_ID = FertiliserForBlockheads.MODID + "_botany_pots_comapt";
+    static final String LEGACY_WORLD_PACK_ID = FertiliserForBlockheads.MODID + "_generated_botanypots_soils";
     private static final Path GENERATED_PACK_ROOT = FMLPaths.CONFIGDIR.get().resolve(FertiliserForBlockheads.MODID).resolve("botany_pots_compat");
     private static final List<String> SELF_SOIL_BLOCK_PATHS = List.of("fertilized_farmland_rich_healthy", "fertilized_farmland_rich_healthy_stable");
     private static final List<String> FFB_OVERRIDE_SOIL_BLOCK_PATHS = List.of("fertilized_farmland_healthy", "fertilized_farmland_healthy_stable", "fertilized_farmland_rich", "fertilized_farmland_rich_stable", "fertilized_farmland_stable");
@@ -74,32 +76,48 @@ public final class BotanyPotsCompat
         Files.writeString(GENERATED_PACK_ROOT.resolve("pack.mcmeta"),"{\n  \"pack\": {\n    \"pack_format\": 48,\n    \"description\": \"Generated BotanyPots soil/crop recipes for FertiliserForBlockheads\"\n  }\n}\n",StandardCharsets.UTF_8,StandardOpenOption.CREATE,StandardOpenOption.TRUNCATE_EXISTING);
         double bonusGrowthChance = getFfbFertiliserBonusGrowthChance();
         double bonusCropChance = getFfbFertiliserBonusCropChance();
-        Path selfSoilDir = GENERATED_PACK_ROOT.resolve("data").resolve("botanypots").resolve("recipes").resolve(FertiliserForBlockheads.MODID).resolve("soil");
-        Path ffbOverrideSoilDir = GENERATED_PACK_ROOT.resolve("data").resolve("botanypots").resolve("recipes").resolve("farmingforblockheads").resolve("soil");
+        Path selfSoilDir = GENERATED_PACK_ROOT.resolve("data").resolve("botanypots").resolve("recipe").resolve(FertiliserForBlockheads.MODID).resolve("soil");
+        Path ffbOverrideSoilDir = GENERATED_PACK_ROOT.resolve("data").resolve("botanypots").resolve("recipe").resolve("farmingforblockheads").resolve("soil");
         Files.createDirectories(selfSoilDir);
         Files.createDirectories(ffbOverrideSoilDir);
+        writeDirtSoilTag();
         int soilsWritten = 0;
         for (String blockPath : SELF_SOIL_BLOCK_PATHS)
         {
             double growthModifier = soilGrowthModifier(blockPath, bonusGrowthChance);
-            soilsWritten += writeSoilRecipe(selfSoilDir, FertiliserForBlockheads.MODID, blockPath, growthModifier);
+            double yieldModifier = soilYieldModifier(blockPath, bonusCropChance);
+            soilsWritten += writeSoilRecipe(selfSoilDir, FertiliserForBlockheads.MODID, blockPath, growthModifier, yieldModifier);
         }
         for (String blockPath : FFB_OVERRIDE_SOIL_BLOCK_PATHS)
         {
             double growthModifier = soilGrowthModifier(blockPath, bonusGrowthChance);
-            soilsWritten += writeSoilRecipe(ffbOverrideSoilDir, "farmingforblockheads", blockPath, growthModifier);
+            double yieldModifier = soilYieldModifier(blockPath, bonusCropChance);
+            soilsWritten += writeSoilRecipe(ffbOverrideSoilDir, "farmingforblockheads", blockPath, growthModifier, yieldModifier);
         }
-        int cropsWritten = writeRichCropRecipes(bonusCropChance);
-        LOGGER.info("[BotanyPotsCompat] Wrote {} soil recipe files and {} rich crop recipe files to {}", soilsWritten, cropsWritten, GENERATED_PACK_ROOT.toAbsolutePath());
+        LOGGER.info("[BotanyPotsCompat] Wrote {} soil recipe files and updated Botany Pots soil tags at {}", soilsWritten, GENERATED_PACK_ROOT.toAbsolutePath());
     }
-    private static int writeSoilRecipe(Path soilDir, String itemNamespace, String blockPath, double growthModifier)
+    private static int writeSoilRecipe(Path soilDir, String itemNamespace, String blockPath, double growthModifier, double yieldModifier)
     {
         try
         {
-            String itemId = itemNamespace + ":" + blockPath;
-            String category = blockPath.contains("rich") ? CATEGORY_FARMLAND_RICH : CATEGORY_FARMLAND;
-            String soilJson = ("{\n  \"bookshelf:load_conditions\": [\n    {\n      \"type\": \"bookshelf:item_exists\",\n      \"values\": [ \"%s\" ]\n    }\n  ],\n  \"type\": \"botanypots:soil\",\n  \"input\": { \"item\": \"%s\" },\n  \"display\": { \"block\": \"%s\" },\n  \"categories\": [ \"%s\" ],\n  \"growthModifier\": %s\n}\n").formatted(itemId, itemId, itemId, category, Double.toString(growthModifier));
-            Files.writeString(soilDir.resolve(blockPath + ".json"),soilJson,StandardCharsets.UTF_8,StandardOpenOption.CREATE,StandardOpenOption.TRUNCATE_EXISTING);
+            String blockId = itemNamespace + ":" + blockPath;
+            JsonObject soil = new JsonObject();
+            JsonArray conditions = new JsonArray();
+            JsonObject condition = new JsonObject();
+            condition.addProperty("type", "bookshelf:block_exists");
+            JsonArray values = new JsonArray();
+            values.add(blockId);
+            condition.add("values", values);
+            conditions.add(condition);
+            soil.add("bookshelf:load_conditions", conditions);
+            soil.addProperty("type", "botanypots:block_derived_soil");
+            soil.addProperty("block", blockId);
+            if (growthModifier > 0d) soil.addProperty("growth_modifier", growthModifier);
+            if (yieldModifier > 0d) soil.addProperty("yield_modifier", yieldModifier);
+            try (Writer w = Files.newBufferedWriter(soilDir.resolve(blockPath + ".json"), StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING))
+            {
+                GSON.toJson(soil, w);
+            }
             return 1;
         }
         catch (Exception e)
@@ -108,8 +126,18 @@ public final class BotanyPotsCompat
             return 0;
         }
     }
+    private static void writeDirtSoilTag() throws Exception
+    {
+        Path dirtTag = GENERATED_PACK_ROOT.resolve("data").resolve("botanypots").resolve("tags").resolve("item").resolve("soil").resolve("dirt.json");
+        Files.createDirectories(dirtTag.getParent());
+        Files.writeString(dirtTag,"{\n  \"values\": [\n    { \"id\": \"fertiliserforblockheads:fertilized_farmland_rich_healthy\", \"required\": false },\n    { \"id\": \"fertiliserforblockheads:fertilized_farmland_rich_healthy_stable\", \"required\": false }\n  ]\n}\n",StandardCharsets.UTF_8,StandardOpenOption.CREATE,StandardOpenOption.TRUNCATE_EXISTING);
+    }
+    private static double soilYieldModifier(String blockPath, double cropBonus)
+    {
+        return blockPath.contains("rich") ? positiveModifier(cropBonus) : 0.0D;
+    }
     private static int writeRichCropRecipes(double bonusCropChance) {
-        Path outRecipesRoot = GENERATED_PACK_ROOT.resolve("data").resolve("botanypots").resolve("recipes");
+        Path outRecipesRoot = GENERATED_PACK_ROOT.resolve("data").resolve("botanypots").resolve("recipe");
         Path modPath;
         try { modPath = ModList.get().getModFileById("botanypots").getFile().getFilePath(); }
         catch (Exception e) { LOGGER.warn("[BotanyPotsCompat] Could not locate BotanyPots mod file; skipping rich crop generation.", e); return 0; }
@@ -118,13 +146,13 @@ public final class BotanyPotsCompat
         try
         {
             Path recipesBase;
-            if (Files.isDirectory(modPath)) { recipesBase = modPath.resolve("data").resolve("botanypots").resolve("recipes"); }
+            if (Files.isDirectory(modPath)) { recipesBase = modPath.resolve("data").resolve("botanypots").resolve("recipe"); }
             else
             {
                 URI uri = URI.create("jar:" + modPath.toUri());
                 try { fs = FileSystems.newFileSystem(uri, Map.of()); }
                 catch (Exception alreadyOpen) { fs = FileSystems.getFileSystem(uri); }
-                recipesBase = fs.getPath("/data/botanypots/recipes");
+                recipesBase = fs.getPath("/data/botanypots/recipe");
             }
             if (!Files.exists(recipesBase)) return 0;
             try (var walk = Files.walk(recipesBase))
@@ -262,13 +290,11 @@ public final class BotanyPotsCompat
     }
     private static double soilGrowthModifier(String blockPath, double growthBonus)
     {
-        if (blockPath.contains("healthy")) return clamp(1.0D + growthBonus);
-        if (blockPath.contains("rich")) return clamp(1.0D + (growthBonus / 2.0D));
-        if (blockPath.contains("stable")) return clamp(1.0D + (growthBonus / 4.0D));
-        return 1.0D;
+        return blockPath.contains("healthy") ? positiveModifier(growthBonus) : 0.0D;
     }
-    private static double clamp(double value) {
-        return Math.max(value, 0.01D);
+    private static double positiveModifier(double value)
+    {
+        return Math.max(value, 0.0D);
     }
     private static double getFfbFertiliserBonusGrowthChance()
     {

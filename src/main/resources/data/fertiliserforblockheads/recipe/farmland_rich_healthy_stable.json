@@ -6,5 +6,6 @@
     { "item": "farmingforblockheads:red_fertilizer" },
     { "item": "farmingforblockheads:yellow_fertilizer" }
   ],
-  "result": { "item": "fertiliserforblockheads:fertilized_farmland_rich_healthy_stable" }
+  "result": { "id": "fertiliserforblockheads:fertilized_farmland_rich_healthy_stable" }
 }
+

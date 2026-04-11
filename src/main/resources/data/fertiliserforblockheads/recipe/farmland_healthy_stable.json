@@ -2,8 +2,9 @@
   "type": "minecraft:crafting_shapeless",
   "ingredients": [
     { "item": "minecraft:farmland" },
-    { "item": "farmingforblockheads:green_fertilizer" },
+    { "item": "farmingforblockheads:red_fertilizer" },
     { "item": "farmingforblockheads:yellow_fertilizer" }
   ],
-  "result": { "item": "farmingforblockheads:fertilized_farmland_rich_stable" }
+  "result": { "id": "farmingforblockheads:fertilized_farmland_healthy_stable" }
 }
+

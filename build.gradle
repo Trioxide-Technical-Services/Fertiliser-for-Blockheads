@@ -11,6 +11,24 @@ base { archivesName = project.mod_id }
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
 sourceSets.main.resources { srcDir 'src/generated/resources' }
+def replaceProperties = [
+    loader_version_range: project.loader_version_range,
+    minecraft_version: project.minecraft_version,
+    minecraft_version_range: project.minecraft_version_range,
+    neo_version: project.neo_version,
+    mod_id: project.mod_id,
+    mod_name: project.mod_name,
+    mod_license: project.mod_license,
+    mod_version: project.mod_version,
+    mod_authors: project.mod_authors,
+    mod_description: project.mod_description
+]
+tasks.named('processResources', ProcessResources).configure {
+    inputs.properties(replaceProperties)
+    filesMatching(['META-INF/neoforge.mods.toml', 'pack.mcmeta']) {
+        expand(replaceProperties)
+    }
+}
 repositories
 {
     maven { url = "https://cursemaven.com" }
@@ -33,11 +51,6 @@ dependencies
 }
 runs
 {
-    configureEach
-    {
-        it.systemProperties.put('forge.logging.markers', 'REGISTRIES')
-        it.systemProperties.put('forge.logging.console.level', 'debug')
-    }
     client { systemProperties.put('neoforge.enabledGameTestNamespaces', project.mod_id.toString()) }
     server
     {

@@ -4,5 +4,6 @@
     { "item": "minecraft:farmland" },
     { "item": "farmingforblockheads:green_fertilizer" }
   ],
-  "result": { "item": "farmingforblockheads:fertilized_farmland_rich" }
+  "result": { "id": "farmingforblockheads:fertilized_farmland_rich" }
 }
+
