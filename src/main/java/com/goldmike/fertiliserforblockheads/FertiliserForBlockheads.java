@@ -3,16 +3,13 @@ import com.mojang.logging.LogUtils;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.function.Supplier;
-import javax.annotation.ParametersAreNonnullByDefault;
 import net.blay09.mods.farmingforblockheads.block.FertilizedFarmlandBlock;
+import net.minecraft.ChatFormatting;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
@@ -22,6 +19,7 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
@@ -50,6 +48,11 @@ import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.NeoForgeRegistries;
 import org.slf4j.Logger;
+import javax.annotation.ParametersAreNonnullByDefault;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.function.Supplier;
 @Mod(FertiliserForBlockheads.MODID)
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
@@ -79,19 +82,14 @@ public class FertiliserForBlockheads
     private static int rollExtraCount(RandomSource rand, double chance)
     {
         if (chance <= 0) return 0;
-        int guaranteed = (int) Math.floor(chance);
+        int guaranteed = (int)Math.floor(chance);
         double remainder = chance - guaranteed;
         return guaranteed + (rand.nextDouble() < remainder ? 1 : 0);
     }
     static final class ComboFarmlandBlock extends FertilizedFarmlandBlock
     {
         private final boolean stable;
-
-        ComboFarmlandBlock(boolean stable)
-        {
-            super(Properties.ofFullCopy(Blocks.FARMLAND));
-            this.stable = stable;
-        }
+        ComboFarmlandBlock(boolean stable) { super(Properties.ofFullCopy(Blocks.FARMLAND)); this.stable = stable; }
         @Override
         public TriState canSustainPlant(BlockState state, BlockGetter level, BlockPos pos, Direction facing, BlockState plant)
         {
@@ -125,15 +123,12 @@ public class FertiliserForBlockheads
             }
         }
         @Override
-        public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<net.minecraft.network.chat.Component> tooltip, net.minecraft.world.item.TooltipFlag flag)
+        public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltip, TooltipFlag flag)
         {
             super.appendHoverText(stack, context, tooltip, flag);
-            tooltip.add(net.minecraft.network.chat.Component.translatable("tooltip.fertiliserforblockheads.rich").withStyle(net.minecraft.ChatFormatting.GREEN));
-            tooltip.add(net.minecraft.network.chat.Component.translatable("tooltip.fertiliserforblockheads.healthy").withStyle(net.minecraft.ChatFormatting.RED));
-            if (stable)
-            {
-                tooltip.add(net.minecraft.network.chat.Component.translatable("tooltip.fertiliserforblockheads.stable").withStyle(net.minecraft.ChatFormatting.YELLOW));
-            }
+            tooltip.add(Component.translatable("tooltip.fertiliserforblockheads.rich").withStyle(ChatFormatting.GREEN));
+            tooltip.add(Component.translatable("tooltip.fertiliserforblockheads.healthy").withStyle(ChatFormatting.RED));
+            if (stable) tooltip.add(Component.translatable("tooltip.fertiliserforblockheads.stable").withStyle(ChatFormatting.YELLOW));
         }
     }
     @EventBusSubscriber(modid = FertiliserForBlockheads.MODID)
@@ -242,7 +237,7 @@ final class WorldDatapackCleanup
     }
     private static boolean deleteRecursive(Path root) {
         if (!Files.exists(root)) return false;
-        try (var walk=Files.walk(root)) {  walk.sorted(java.util.Comparator.reverseOrder()).forEach(p->{try{Files.deleteIfExists(p);}catch(java.io.IOException ignored){}}); return true; }
-        catch (Exception e)  {  LOGGER.warn("[FertilizerForBlockheads] Failed deleting {}",root.toAbsolutePath(),e); return false; }
+        try (var walk=Files.walk(root)) { walk.sorted(java.util.Comparator.reverseOrder()).forEach(p->{try{Files.deleteIfExists(p);}catch(java.io.IOException ignored){}}); return true; }
+        catch (Exception e) { LOGGER.warn("[FertilizerForBlockheads] Failed deleting {}",root.toAbsolutePath(),e); return false; }
     }
 }

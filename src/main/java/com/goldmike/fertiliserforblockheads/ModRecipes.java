@@ -1,10 +1,8 @@
 package com.goldmike.fertiliserforblockheads;
-import javax.annotation.ParametersAreNonnullByDefault;
-import java.util.function.Supplier;
+import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -17,6 +15,8 @@ import net.minecraft.world.item.crafting.SimpleCraftingRecipeSerializer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.neoforged.neoforge.registries.DeferredRegister;
+import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.function.Supplier;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public final class ModRecipes
@@ -25,6 +25,10 @@ public final class ModRecipes
     public static final Supplier<RecipeSerializer<?>> FARMLAND = SERIALIZERS.register("farmland", () -> new SimpleCraftingRecipeSerializer<>(farmland::new));
     private ModRecipes() {}
 }
+/**
+ * Dirt + any hoe -> 1x minecraft:farmland
+ * Hoe is returned with 1 durability damage.
+ */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 final class farmland extends CustomRecipe
@@ -39,8 +43,9 @@ final class farmland extends CustomRecipe
         {
             ItemStack s = inv.getItem(i);
             if (s.isEmpty()) continue;
-            if (!foundDirt && s.is(Items.DIRT))  { foundDirt = true; continue; }
+            if (!foundDirt && s.is(Items.DIRT)) { foundDirt = true; continue; }
             if (!foundHoe && s.is(ItemTags.HOES)) { foundHoe = true; continue; }
+            // Any extra junk in the grid invalidates the recipe.
             return false;
         }
         return foundDirt && foundHoe;
@@ -72,6 +77,8 @@ final class farmland extends CustomRecipe
             if (s.is(ItemTags.HOES))
             {
                 ItemStack copy = s.copy();
+                // Damage by 1. If it breaks, it vanishes like any other tool.
+                // Just damage the item manually without going through hurt()
                 copy.setDamageValue(copy.getDamageValue() + 1);
                 boolean broke = copy.getDamageValue() >= copy.getMaxDamage();
                 remaining.set(i, broke ? ItemStack.EMPTY : copy);

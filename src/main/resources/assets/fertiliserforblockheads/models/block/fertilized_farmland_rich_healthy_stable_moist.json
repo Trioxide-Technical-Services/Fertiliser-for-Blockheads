@@ -3,5 +3,5 @@
   "textures": {
     "dirt": "minecraft:block/dirt",
     "top": "fertiliserforblockheads:block/fertilized_farmland_rich_healthy_stable_moist"
- }
+  }
 }
